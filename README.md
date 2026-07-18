@@ -1,147 +1,126 @@
 # HaumeaDeath
 
-<p align="center">
-  <strong>Morte com coordenadas, inventário pré-morte e restauração segura</strong><br/>
-  Quando o jogador morre, o chat mostra o local e botões para <em>ver</em> ou <em>recuperar</em> o inventário.
-</p>
+Veja onde morreu, confira o inventário anterior à morte e restaure os itens com confirmação — sem depender de um mod no cliente.
 
-<p align="center">
-  <img alt="Minecraft" src="https://img.shields.io/badge/Minecraft-1.20.2-62b47a?style=for-the-badge&logo=minecraft&logoColor=white" />
-  <img alt="Loader" src="https://img.shields.io/badge/Loader-Fabric-dbb69b?style=for-the-badge" />
-  <img alt="Java" src="https://img.shields.io/badge/Java-17+-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" />
-  <img alt="Version" src="https://img.shields.io/badge/Version-1.0.0-informational?style=for-the-badge" />
-</p>
+O HaumeaDeath é um mod Fabric para servidores Minecraft 1.20.2. Antes do fluxo vanilla de morte, ele guarda uma cópia do inventário do jogador, informa coordenadas e dimensão no chat e oferece ações clicáveis para visualizar ou recuperar o snapshot.
 
----
+## Fluxo do jogador
 
-## O que é
+1. O servidor registra inventário principal, armadura e mão secundária antes dos drops.
+2. O chat mostra coordenadas e dimensão da morte.
+3. **Ver inventário** abre um baú somente para leitura.
+4. **Copiar inventário** abre uma tela de confirmação.
+5. Ao confirmar, os itens atuais são derrubados aos pés do jogador e o snapshot é aplicado.
 
-**HaumeaDeath** é um mod Fabric focado em servidor que, em cada morte:
-
-1. **Salva um snapshot** do inventário (main + armadura + offhand) **antes** do drop vanilla  
-2. Envia no chat do jogador:
-   - **Coordenadas** da morte + dimensão  
-   - **`[Ver inventário]`** — abre um baú **somente leitura** com o inventário da morte  
-   - **`[Copiar inventário]`** — abre uma **GUI de confirmação** (verde = restaurar, vermelho = cancelar)  
-3. Ao confirmar, **restaura** o inventário da morte no jogador que renasceu  
-
-### Regras de segurança
-
-| Regra | Detalhe |
-|-------|---------|
-| Só o dono | Apenas o UUID do jogador que morreu pode ver/restaurar **o próprio** inventário |
-| Uma vez | Cada snapshot só pode ser **restaurado uma vez** |
-| Sem apagar itens atuais | Itens que o jogador tiver na hora da restauração são **dropados no chão** (não somem em silêncio) |
-| Drops do mundo | O loot no chão da morte **não é removido** automaticamente |
-
-### Exemplo no chat
+Exemplo:
 
 ```text
 HaumeaDeath » Você morreu em -25, 113, -383 [Overworld]
-Ações:  [Ver inventário]  [Copiar inventário]
+Ações: [Ver inventário] [Copiar inventário]
 ```
 
-> **Dica:** após morrer, **renasça** e clique nos botões no histórico do chat (comandos por clique funcionam melhor depois do respawn).
-
----
+Depois de renascer, use os botões no histórico do chat ou os comandos.
 
 ## Comandos
 
-| Comando | Descrição |
-|---------|-----------|
-| `/haumeadeath view` | Abre a GUI de visualização do inventário da última morte |
-| `/haumeadeath restore` | Abre a GUI de confirmação para restaurar o inventário |
+| Comando | Ação |
+| --- | --- |
+| `/haumeadeath view` | abre o último inventário salvo em modo somente leitura |
+| `/haumeadeath restore` | abre a confirmação de restauração |
 
-Os botões do chat executam esses comandos.
+As ações são vinculadas ao UUID: cada jogador só acessa o próprio snapshot.
 
----
+## Regras importantes
+
+- Apenas a morte mais recente de cada jogador fica disponível.
+- Cada snapshot só pode ser restaurado uma vez durante a execução atual do servidor.
+- Itens carregados no momento da restauração são derrubados no chão antes da troca.
+- Os drops criados pela morte original não são removidos.
+
+> [!WARNING]
+> Como os drops da morte permanecem no mundo, restaurar o snapshot pode duplicar itens caso alguém também recolha os drops originais. Use o mod apenas em servidores cuja política aceite esse comportamento.
+
+## Estado do armazenamento
+
+Os snapshots ficam em memória, em um `ConcurrentHashMap`.
+
+Isso significa que:
+
+- reiniciar ou parar o servidor apaga todos os snapshots;
+- uma nova morte substitui o registro anterior;
+- não há banco de dados, arquivo de recuperação ou histórico;
+- a marca de “já restaurado” também não sobrevive a reinícios.
+
+Essa limitação deve ser considerada antes de usar o mod em produção.
 
 ## Requisitos
 
-- **Minecraft** `1.20.2`
-- **Fabric Loader** `≥ 0.15.0`
-- **Fabric API** para `1.20.2` (ex.: `0.91.6+1.20.2`)
-- **Java** `17+` no servidor
+- Minecraft Java Edition `1.20.2`;
+- Fabric Loader `0.15.0` ou superior;
+- Fabric API compatível, configurada no projeto como `0.91.6+1.20.2`;
+- Java 17 ou superior no servidor.
 
-> **Nota:** mods Fabric são versionados por Minecraft. Este build mira **1.20.2**. Paper/Spigot/Forge **não** carregam este jar.
+O JAR não é compatível com Paper, Spigot ou Forge. O cliente não precisa instalar o mod.
 
----
+## Instalação
 
-## Instalação (servidor)
-
-1. Instale o [Fabric](https://fabricmc.net/use/server/) no servidor `1.20.2`.
-2. Coloque o **Fabric API** em `mods/`.
-3. Baixe o `HaumeaDeath-1.0.0.jar` (Release ou build local) e coloque em `mods/`.
+1. Instale o [Fabric Server](https://fabricmc.net/use/server/) para Minecraft 1.20.2.
+2. Coloque o Fabric API em `mods/`.
+3. Coloque `HaumeaDeath-1.0.0.jar` em `mods/`.
 4. Reinicie o servidor.
-5. Morra (em survival) e confira o chat — ou use `/haumeadeath view` após uma morte.
+5. Faça um teste controlado antes de liberar o recurso aos jogadores.
 
-Não é necessário no cliente — tudo roda no servidor. Jogadores só precisam de um cliente compatível com o server.
+## Compilar
 
----
-
-## Build a partir do código
+No Linux ou macOS:
 
 ```bash
 git clone https://github.com/riique/HaumeaDeath.git
 cd HaumeaDeath
-
-# Java 17+ recomendado para o toolchain
 ./gradlew build
 ```
 
-O jar sai em:
+No PowerShell:
+
+```powershell
+git clone https://github.com/riique/HaumeaDeath.git
+Set-Location HaumeaDeath
+.\gradlew.bat build
+```
+
+O JAR é gerado em:
 
 ```text
 build/libs/HaumeaDeath-1.0.0.jar
 ```
 
-Copie para a pasta `mods/` do servidor e reinicie.
+## Estrutura
 
----
-
-## Estrutura do projeto
-
-```text
-HaumeaDeath/
-├── src/main/java/com/haumea/death/
-│   ├── HaumeaDeathMod.java              # morte, chat, comandos, restore
-│   ├── DeathRecord.java                 # snapshot NBT do inventário
-│   ├── DeathStorage.java                # armazenamento em memória
-│   ├── ViewOnlyScreenHandler.java       # GUI só visualização
-│   └── ConfirmRestoreScreenHandler.java # GUI confirmar / cancelar
-├── src/main/resources/
-│   └── fabric.mod.json
-├── build.gradle
-├── gradle.properties
-└── README.md
-```
-
----
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `HaumeaDeathMod.java` | evento de morte, mensagens, comandos e restauração |
+| `DeathRecord.java` | serialização NBT do inventário |
+| `DeathStorage.java` | último snapshot em memória por UUID |
+| `ViewOnlyScreenHandler.java` | visualização com slots bloqueados |
+| `ConfirmRestoreScreenHandler.java` | confirmação ou cancelamento |
+| `fabric.mod.json` | metadados e dependências Fabric |
 
 ## Desenvolvimento
 
 | Item | Valor |
-|------|--------|
+| --- | --- |
 | Mod ID | `haumeadeath` |
-| Grupo Maven | `com.haumea` |
-| Entrypoint | `com.haumea.death.HaumeaDeathMod` |
+| Versão | `1.0.0` |
 | Loom | `1.7.4` |
 | Yarn | `1.20.2+build.4` |
+| Entrypoint | `com.haumea.death.HaumeaDeathMod` |
 
-Snapshot de morte via `ServerLivingEntityEvents.ALLOW_DEATH` (antes dos drops). GUIs usam `GenericContainerScreenHandler` com slots bloqueados.
+O snapshot é capturado por `ServerLivingEntityEvents.ALLOW_DEATH`, antes dos drops vanilla. Ao atualizar a versão do Minecraft, revise as APIs de inventário, NBT, eventos e telas.
 
-Para outra versão de Minecraft, ajuste `gradle.properties` (`minecraft_version`, `yarn_mappings`, `fabric_version`) e recompile. APIs podem mudar entre versões.
+## Contribuição
 
----
+Ao relatar um problema, informe versão do servidor, Fabric Loader, Fabric API e a sequência entre morte, respawn e restauração. Não teste correções com itens valiosos sem antes fazer backup do mundo.
 
 ## Licença
 
-Distribuído sob a licença **[MIT](LICENSE)**. Use, modifique e redistribua à vontade.
-
----
-
-<p align="center">
-  Feito com ☕ para a comunidade Haumea<br/>
-  Irmão do <a href="https://github.com/riique/HaumeaPing">HaumeaPing</a>
-</p>
+Distribuído sob a [Licença MIT](LICENSE).
